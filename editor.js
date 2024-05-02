@@ -20,6 +20,8 @@ function editSetup() {
 }
 
 function editRender() {
+  
+
   let leftX = playX - playS / 2;
   let rightX = playX + playS / 2;
 
@@ -70,4 +72,9 @@ function editRender() {
     if (oscArray[i] === undefined) continue;
     oscArray[i].panelRender();
   }
+  
+  
+  globalSpeedAdj.render()
+  globalSpeed = globalSpeedAdj.value
+
 }

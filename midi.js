@@ -8,7 +8,7 @@ class Midi {
     this.data = [0];
     this.tickLength = 1
     this.speed = 1;
-    this.usingGlobalSpeed = true;
+    this.usingGlobalSpeed = false;
     this.speedMultiplier = 1;
 
     this.currentCommand = undefined;
@@ -39,6 +39,8 @@ class Midi {
     this.scrollX = 0;
     this.maxScrollX = 0;
     this.mainBarSize = 80;
+    this.playheadSize = 20;
+    this.mainBarSizeReal = this.mainBarSize - this.playheadSize
     this.offsetX = 0;
     this.offsetY = this.mainBarSize;
     this.scrollbarSize = 15;
@@ -50,6 +52,27 @@ class Midi {
     this.noteAnchorY = 0;
     this.noteDrag = false;
     this.noteDeleting = false;
+    
+    this.speedAdjPlace = 250
+    
+    this.ticksAdj = new Adjustable(8)
+    this.ticksAdj.bounds(1,0)
+    this.ticksAdj.size = 35
+    this.ticksAdj.position(140,this.mainBarSizeReal/2)
+    
+    this.speedAdj = new Adjustable(10)
+    this.speedAdj.bounds(0.1,99)
+    this.speedAdj.size = 35
+    this.speedAdj.decimals = true
+    this.speedAdj.position(this.speedAdjPlace,this.mainBarSizeReal/2)
+    
+    this.multAdj = new Adjustable(1)
+    this.multAdj.bounds(1,99)
+    this.multAdj.size = 35
+    this.multAdj.position(this.speedAdjPlace + 120,this.mainBarSizeReal/2)
+    
+    this.usingGlobalSpeedAdj = createCheckbox('Use global speed', true)
+    this.usingGlobalSpeedAdj.position(500,this.mainBarSizeReal/3)
   }
 
   update() {
@@ -274,6 +297,8 @@ class Midi {
     }
 
     // Main bar
+    
+    this.usingGlobalSpeedAdj.position(500,this.mainBarSizeReal/3)
 
     fill(100);
     rect(0, 0, width, this.mainBarSize);
@@ -282,17 +307,38 @@ class Midi {
       if (i == this.playheadIndex) {
         fill(100);
       }
-      circle(w * (i - this.scrollX) + w / 2, this.mainBarSize - 10, 5);
+      circle(w * (i - this.scrollX) + w / 2, this.mainBarSize - this.playheadSize/2, 5);
     }
     fill(60);
     stroke(0);
-    circle(30, 30, 40);
+    circle(this.mainBarSizeReal/2, this.mainBarSizeReal/2, 40);
     if (doubleClickedAt(15, 15, 40, 40)) {
       currentFocus = 0;
     }
     fill(100);
+    //line(0,this.mainBarSizeReal,width,this.mainBarSizeReal)
     
+    textAlign(LEFT, CENTER);
+    textSize(35)
+    fill(0)
+    //noStroke()
+    //text('Length:',80,this.mainBarSizeReal/2)
+    this.ticksAdj.render()
+    this.tickLength = this.ticksAdj.value
     
+    //noStroke()
+    //text('Speed:',240,this.mainBarSizeReal/2)
+    
+    this.speedAdj.render()
+    this.speed = this.speedAdj.value
+    
+    textSize(20)
+    text('*',this.speedAdjPlace + 103,this.mainBarSizeReal/2)
+    
+    this.multAdj.render()
+    this.speedMultiplier = this.multAdj.value
+    
+    this.usingGlobalSpeed = this.usingGlobalSpeedAdj.checked()
 
     // Note input
 
@@ -508,5 +554,8 @@ class Midi {
     if (mouseIsReleased) {
       this.creatingConnection = false;
     }
+  }
+  unRender(){
+    this.usingGlobalSpeedAdj.position(-500,-500)
   }
 }

@@ -9,6 +9,8 @@ var ghostNotes = true;
 var debugView = false;
 var mode = 0;
 
+var globalSpeedAdj;
+
 var currentFocus = 0; // 0 = focus is on the main screen
 
 var mouseInUse = false;
@@ -26,14 +28,26 @@ function setup() {
   canvas.elt.addEventListener("contextmenu", (e) => e.preventDefault())
   getAudioContext().suspend();
   
+  globalSpeedAdj = new Adjustable(5)
+  globalSpeedAdj.position(width/2, 50)
+  globalSpeedAdj.bounds(0.1,99)
+  globalSpeedAdj.decimals = true
+  globalSpeedAdj.alignX = CENTER
+  
   // important stuff ^^^^^^^^^^^^^^^^^
   
   
   midiArray[0] = new Midi();
+  midiArray[1] = new Midi();
+  midiArray[2] = new Midi();
+  midiArray[3] = new Midi();
   //midiArray[1] = new Midi();
   oscArray[0] = new Oscillator();
   oscArray[1] = new Oscillator();
   oscArray[2] = new Oscillator();
+  oscArray[3] = new Oscillator();
+  oscArray[4] = new Oscillator();
+  oscArray[5] = new Oscillator();
   oscArray[0].freq = 1000;
   oscArray[0].volume = 1000;
   /*
@@ -96,9 +110,7 @@ function setup() {
 }
 
 function draw() {
-  
-  //console.log(midiArray[1].currentCommand)
-  
+
   if (mouseIsPressed == true && splash.update() == true) {
     mode = 1;
   }
@@ -144,6 +156,7 @@ function draw() {
       renderDebugView();
     } else if (currentFocus !== 0) {
       currentFocus.tabRender();
+      
     } else {
       editRender();
     }
@@ -151,13 +164,15 @@ function draw() {
     for (let i = 0; i < midiArray.length; i++) {
       if (midiArray[i] === undefined) continue;
       midiArray[i].update();
+      if(midiArray[i] != currentFocus) {
+        midiArray[i].unRender()
+      }
     }
     for (let i = 0; i < oscArray.length; i++) {
       if (oscArray[i] === undefined) continue;
       oscArray[i].update();
     }
     prevPlaybackState = playbackState;
-    
     // MOUSE INPUT STUFF
     
     mouseIsClicked = false;
