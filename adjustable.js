@@ -2,7 +2,9 @@ class Adjustable {
   constructor(defaultValue) {
     this.x = 0;
     this.y = 0;
-    this.size = 50;
+    this.h = 50;
+    this.w = 143;
+    this.size = this.h;
     if (defaultValue !== undefined) {
       this.value = defaultValue;
     } else {
@@ -15,8 +17,6 @@ class Adjustable {
     this.sensitivity = 0.1;
     this.decimals = false;
     this.difference = 0;
-    this.alignX = LEFT;
-    this.alignY = CENTER;
   }
   position(x, y) {
     this.x = x;
@@ -29,33 +29,32 @@ class Adjustable {
   value() {
     return this.value;
   }
-  render() {
-    fill(0);
+  render(override) {
+    this.size = this.h;
+    stroke(mainL5);
     textSize(this.size);
-    textAlign(this.alignX, this.alignY);
-    if (this.decimals) {
-      text(this.value.toFixed(3), this.x, this.y);
+    textAlign(LEFT, TOP);
+    rect(this.x, this.y, this.w, this.h);
+
+    fill(mainL5);
+    noStroke();
+    if (override !== undefined) {
+      text(override, this.x + 3, this.y + 2);
     } else {
-      text(this.value, this.x, this.y);
+      if (this.decimals) {
+        text(this.value.toFixed(3), this.x + 3, this.y + 2);
+      } else {
+        text(this.value, this.x + 3, this.y + 2);
+      }
     }
-    let alignXOffset;
-    if(this.alignX == LEFT) {
-      alignXOffset = 0
-    }
-    if(this.alignX == CENTER) {
-      alignXOffset = -this.size / 2
-    }
-    if(this.alignX == RIGHT) {
-      alignXOffset = -this.size
-    }
-    if (clickedAt(this.x+alignXOffset, this.y - this.size / 2, this.size, this.size)) {
+    if (clickedAt(this.x, this.y, this.w, this.h)) {
       requestPointerLock();
       this.editing = true;
       this.anchor = this.value;
       this.difference = 0;
     }
- 
-    if (this.editing) {
+
+    if (this.editing && !override) {
       this.difference += movedY;
       if (this.decimals == true) {
         this.value = this.anchor + -this.difference * this.sensitivity;
@@ -64,10 +63,11 @@ class Adjustable {
           this.anchor + -this.difference * this.sensitivity
         );
       }
-      if (this.upperLimit > 0) {
-        this.value = min(this.value, this.upperLimit);
-      }
-      this.value = max(this.value, this.lowerLimit);
+        // only change value if display is not being overwritten
+        if (this.upperLimit > 0) {
+          this.value = min(this.value, this.upperLimit);
+        }
+        this.value = max(this.value, this.lowerLimit);
     }
 
     if (mouseIsReleased) {

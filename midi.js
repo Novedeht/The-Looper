@@ -1,14 +1,16 @@
 class Midi {
   constructor() {
+    this.name = "midi";
+
     this.playheadIndex = 0;
     this.prevPlayheadIndex = 0;
 
     this.countDiff = 0;
 
     this.data = [0];
-    this.tickLength = 1
+    this.tickLength = 8;
     this.speed = 1;
-    this.usingGlobalSpeed = false;
+    this.usingGlobalSpeed = true;
     this.speedMultiplier = 1;
 
     this.currentCommand = undefined;
@@ -38,41 +40,60 @@ class Midi {
     this.maxScrollY = 0;
     this.scrollX = 0;
     this.maxScrollX = 0;
-    this.mainBarSize = 80;
+    this.mainBarSize = 100;
     this.playheadSize = 20;
-    this.mainBarSizeReal = this.mainBarSize - this.playheadSize
+    this.mainBarSizeReal = this.mainBarSize - this.playheadSize;
     this.offsetX = 0;
     this.offsetY = this.mainBarSize;
     this.scrollbarSize = 15;
     this.scrollDragX = false;
     this.scrollDragY = false;
+    this.nubDrag = false;
     this.viewWidth = width - this.scrollbarSize;
     this.viewHeight = height - this.scrollbarSize - this.offsetY;
     this.noteAnchorX = 0;
     this.noteAnchorY = 0;
     this.noteDrag = false;
     this.noteDeleting = false;
-    
-    this.speedAdjPlace = 250
-    
-    this.ticksAdj = new Adjustable(8)
-    this.ticksAdj.bounds(1,0)
-    this.ticksAdj.size = 35
-    this.ticksAdj.position(140,this.mainBarSizeReal/2)
-    
-    this.speedAdj = new Adjustable(10)
-    this.speedAdj.bounds(0.1,99)
-    this.speedAdj.size = 35
-    this.speedAdj.decimals = true
-    this.speedAdj.position(this.speedAdjPlace,this.mainBarSizeReal/2)
-    
-    this.multAdj = new Adjustable(1)
-    this.multAdj.bounds(1,99)
-    this.multAdj.size = 35
-    this.multAdj.position(this.speedAdjPlace + 120,this.mainBarSizeReal/2)
-    
-    this.usingGlobalSpeedAdj = createCheckbox('Use global speed', true)
-    this.usingGlobalSpeedAdj.position(500,this.mainBarSizeReal/3)
+
+    this.barMargin = 30;
+
+    this.ticksAdj = new Adjustable(8);
+    this.ticksAdj.bounds(1, 9999);
+    this.ticksAdj.position(
+      this.mainBarSizeReal + this.barMargin,
+      this.mainBarSizeReal / 2
+    );
+    this.ticksAdj.h = this.mainBarSizeReal / 3;
+    this.ticksAdj.w = (this.ticksAdj.h / 2) * 5;
+
+    this.speedAdj = new Adjustable(5);
+    this.speedAdj.bounds(0.1, 99);
+    this.speedAdj.decimals = true;
+    this.speedAdj.position(
+      this.barMargin + this.mainBarSizeReal + this.ticksAdj.w + this.barMargin,
+      this.mainBarSizeReal / 2
+    );
+    this.speedAdj.h = this.mainBarSizeReal / 3;
+    this.speedAdj.w = (this.ticksAdj.h / 2) * 6;
+
+    this.multAdj = new Adjustable(1);
+    this.multAdj.bounds(1, 99);
+    this.multAdj.position(
+      this.barMargin +
+        this.mainBarSizeReal +
+        this.ticksAdj.w +
+        this.barMargin +
+        this.speedAdj.w +
+        this.barMargin / 3 +
+        13 +
+        this.barMargin / 3,
+      this.mainBarSizeReal / 2
+    );
+    this.multAdj.h = this.mainBarSizeReal / 3;
+    this.multAdj.w = (this.ticksAdj.h / 2) * 2.5;
+
+    this.usingGlobalSpeedAdj = createCheckbox("", true);
   }
 
   update() {
@@ -96,6 +117,9 @@ class Midi {
     if (this.playheadIndex != this.prevPlayheadIndex && playbackState == 1) {
       this.currentCommand = this.data[this.playheadIndex];
     }
+    if (this.playheadIndex == this.prevPlayheadIndex) {
+      this.currentCommand = 0;
+    }
 
     if (playbackState == 1) {
       if (prevPlaybackState == 0 || prevPlaybackState == 2) {
@@ -109,7 +133,7 @@ class Midi {
 
     if (playbackState == 0) {
       this.currentCommand = -1;
-      this.playheadIndex = 0;
+      //  this.playheadIndex = 0;
       this.countDiff = 0;
     }
 
@@ -164,7 +188,7 @@ class Midi {
 
     //noStroke();
 
-    background(150);
+    background(mainL1);
 
     // Playhead
 
@@ -177,8 +201,8 @@ class Midi {
       this.viewHeight
     );
 
-    stroke(100);
-    fill(100);
+    stroke(mainL2);
+    fill(mainL2);
 
     // Vertical Lines and Notes
 
@@ -187,9 +211,15 @@ class Midi {
     for (let k = 0; k < midiArray.length; k++) {
       if (midiArray[k] === undefined) continue;
       if (this.usingGlobalSpeed == true) {
-        wScaled =
-          (w * (globalSpeed * this.speedMultiplier)) /
-          (globalSpeed * midiArray[k].speedMultiplier);
+        if (midiArray[k].data == this.data) {
+          wScaled =
+            (w * (globalSpeed * this.speedMultiplier)) /
+            (globalSpeed * midiArray[k].speedMultiplier);
+        } else {
+          wScaled =
+            (w * (globalSpeed * this.speedMultiplier)) /
+            (midiArray[k].speed * midiArray[k].speedMultiplier);
+        }
       } else {
         wScaled =
           (w * (this.speed * this.speedMultiplier)) /
@@ -199,13 +229,13 @@ class Midi {
       if (ghostNotes || midiArray[k].data == this.data) {
         for (let j = 0; j < fullWidth / wScaled; j++) {
           let posX = wScaled * j - scrollOffsetX + this.offsetX;
-          let modIndex = j % midiArray[k].data.length;
+          let modIndex = j % midiArray[k].tickLength;
           let notePosY =
             h * map(midiArray[k].data[modIndex], 0, 128, 128, 0) -
             scrollOffsetY +
             this.offsetY;
           let noteLength = 1;
-          let jMod = j % midiArray[k].data.length;
+          let jMod = j % midiArray[k].tickLength;
           for (let o = 0; jMod + o < fullWidth / wScaled; o++) {
             if (o + jMod == jMod) continue;
             if (midiArray[k].data[jMod + o] != "0") break;
@@ -215,16 +245,18 @@ class Midi {
             posX <= this.viewWidth + this.offsetX &&
             posX + wScaled * noteLength > 0 + this.offsetX - wScaled
           ) {
-            fill(100);
+            fill(mainL2);
             if (midiArray[k].data == this.data) {
-              fill(0);
+              stroke(mainL2);
               line(posX, this.offsetY, posX, this.viewHeight + this.offsetY);
+              fill(mainL5);
               //text(j, posX, h + this.offsetY);
             }
             if (
               notePosY <= this.viewHeight + this.offsetY &&
               notePosY >= 0 + this.offsetY
             ) {
+              stroke(0, 0);
               rect(posX, notePosY, wScaled * noteLength, h); //wScaled, h);
             }
           }
@@ -240,26 +272,47 @@ class Midi {
         stroke(100);
         line(this.offsetX, posY, width + this.offsetX, posY);
         stroke(0, 0, 0, 0);
-        fill(0);
+        fill(mainL5);
         //text(map(j, 0, 128, 128, 0), this.offsetX, posY + h - 2);
       }
     }
 
+    // the nub
+
+    if (
+      clickedAt(
+        scrollbarWidth,
+        scrollbarHeight,
+        this.scrollbarSize,
+        this.scrollbarSize
+      ) &&
+      !mouseInUse
+    ) {
+      this.nubDrag = true;
+      requestPointerLock();
+    }
+    if (mouseIsReleased) {
+      this.nubDrag = false;
+      exitPointerLock();
+    }
+
+    if (this.nubDrag == true) {
+      this.mHeight = max(this.viewHeight / 128, this.mHeight + -movedY * 0.15);
+      this.mWidth = max(
+        this.viewWidth / this.tickLength,
+        this.mWidth + -movedX * 0.4
+      );
+    }
+
     // Scrollbars
 
-    fill(150);
+    fill(mainL1);
     rect(this.offsetX, scrollbarHeight, scrollbarWidth, this.scrollbarSize);
     rect(scrollbarWidth, this.offsetY, this.scrollbarSize, height);
-
-    fill(100);
-    rect(
-      scrollbarWidth,
-      scrollbarHeight,
-      this.scrollbarSize,
-      this.scrollbarSize
-    );
+    fill(mainL2);
 
     // X
+    stroke(mainL5);
     rect(
       (scrollbarWidth / this.tickLength) * this.scrollX + this.offsetX,
       scrollbarHeight,
@@ -268,6 +321,7 @@ class Midi {
     );
     // Hitbox
     if (
+      !mouseInUse &&
       clickedAt(
         (scrollbarWidth / this.tickLength) * this.scrollX + this.offsetX,
         scrollbarHeight,
@@ -276,6 +330,7 @@ class Midi {
       )
     ) {
       this.scrollDragX = true;
+      mouseInUse = true;
     }
     // Y
     rect(
@@ -286,6 +341,7 @@ class Midi {
     );
     // Hitbox
     if (
+      !mouseInUse &&
       clickedAt(
         scrollbarWidth,
         ((scrollbarHeight - this.offsetY) / 128) * this.scrollY + this.offsetY,
@@ -294,57 +350,181 @@ class Midi {
       )
     ) {
       this.scrollDragY = true;
+      mouseInUse = true;
     }
+
+    fill(mainL2); // the nub
+    rect(
+      scrollbarWidth,
+      scrollbarHeight,
+      this.scrollbarSize,
+      this.scrollbarSize
+    );
+    fill(mainL1); // moving square inside
+
+    rectMode(CORNERS);
+    let mapY = min(
+      //number 40 is arbitrary
+      map(
+        this.mHeight,
+        this.viewHeight / 128,
+        40,
+        0,
+        this.scrollbarSize / 2 - 5
+      ),
+      this.scrollbarSize / 2
+    );
+    let mapX = min(
+      map(
+        //number 250 is arbitrary
+        this.mWidth,
+        this.viewWidth / this.tickLength,
+        250,
+        0,
+        this.scrollbarSize / 2 - 5
+      ),
+      this.scrollbarSize / 2
+    );
+    rect(
+      scrollbarWidth + mapX,
+      scrollbarHeight + mapY,
+      scrollbarWidth + this.scrollbarSize - mapX,
+      scrollbarHeight + this.scrollbarSize - mapY
+    );
+    rectMode(CORNER);
+    noStroke();
+    // Moving checkboxes back into place
+
+    this.usingGlobalSpeedAdj.position(
+      this.barMargin +
+        this.mainBarSizeReal +
+        this.ticksAdj.w +
+        this.barMargin +
+        this.speedAdj.w +
+        this.barMargin / 3 +
+        13 +
+        this.barMargin / 3 +
+        this.multAdj.w +
+        this.barMargin +
+        80,
+      this.mainBarSizeReal / 1.7
+    );
 
     // Main bar
-    
-    this.usingGlobalSpeedAdj.position(500,this.mainBarSizeReal/3)
 
-    fill(100);
-    rect(0, 0, width, this.mainBarSize);
+    fill(mainL2);
+    rect(0, 0, width, this.mainBarSize); // main bar bg
+    fill(mainL3);
+    stroke(mainL5);
+    rect(0, this.mainBarSize, width, -this.playheadSize); //playhead bar
+    noStroke();
     for (let i = 0; i < this.tickLength; i++) {
-      fill(150);
+      fill(mainL2);
       if (i == this.playheadIndex) {
-        fill(100);
+        fill(mainL5);
       }
-      circle(w * (i - this.scrollX) + w / 2, this.mainBarSize - this.playheadSize/2, 5);
+      circle(
+        w * (i - this.scrollX) + w / 2,
+        this.mainBarSize - this.playheadSize / 2,
+        8
+      );
     }
-    fill(60);
-    stroke(0);
-    circle(this.mainBarSizeReal/2, this.mainBarSizeReal/2, 40);
-    if (doubleClickedAt(15, 15, 40, 40)) {
+    fill(mainL4);
+    stroke(mainL5);
+    let backButtonPos = this.mainBarSizeReal / 2;
+    let backButtonSize = this.mainBarSizeReal - 20;
+    circle(backButtonPos, backButtonPos, backButtonSize);
+    if (
+      doubleClickedAt(
+        backButtonPos - backButtonSize / 2,
+        backButtonPos - backButtonSize / 2,
+        backButtonSize,
+        backButtonSize
+      )
+    ) {
       currentFocus = 0;
     }
-    fill(100);
-    //line(0,this.mainBarSizeReal,width,this.mainBarSizeReal)
-    
-    textAlign(LEFT, CENTER);
-    textSize(35)
-    fill(0)
-    //noStroke()
-    //text('Length:',80,this.mainBarSizeReal/2)
-    this.ticksAdj.render()
-    this.tickLength = this.ticksAdj.value
-    
-    //noStroke()
-    //text('Speed:',240,this.mainBarSizeReal/2)
-    
-    this.speedAdj.render()
-    this.speed = this.speedAdj.value
-    
-    textSize(20)
-    text('*',this.speedAdjPlace + 103,this.mainBarSizeReal/2)
-    
-    this.multAdj.render()
-    this.speedMultiplier = this.multAdj.value
-    
-    this.usingGlobalSpeed = this.usingGlobalSpeedAdj.checked()
 
-    // Note input
+    // Adjustables
+
+    noStroke();
+    fill(mainL5);
+    textSize(this.ticksAdj.h);
+    text(
+      "length:",
+      this.barMargin + this.mainBarSizeReal,
+      this.mainBarSizeReal / 6
+    );
+    fill(mainL3);
+    this.ticksAdj.render();
+    this.tickLength = this.ticksAdj.value;
+
+    fill(mainL5);
+    text(
+      "speed:",
+      this.barMargin + this.mainBarSizeReal + this.ticksAdj.w + this.barMargin,
+      this.mainBarSizeReal / 6
+    );
+    fill(mainL3);
+    if (this.usingGlobalSpeed) {
+      this.speedAdj.render(globalSpeed.toFixed(3));
+    } else {
+      this.speedAdj.render();
+    }
+    this.speed = this.speedAdj.value;
+    fill(mainL5);
+    text(
+      "*",
+      this.barMargin +
+        this.mainBarSizeReal +
+        this.ticksAdj.w +
+        this.barMargin +
+        this.speedAdj.w +
+        this.barMargin / 3,
+      this.mainBarSizeReal / 2
+    );
+    fill(mainL3);
+    this.multAdj.render();
+    this.speedMultiplier = this.multAdj.value;
+    text(
+      "use global speed:",
+      this.barMargin +
+        this.mainBarSizeReal +
+        this.ticksAdj.w +
+        this.barMargin +
+        this.speedAdj.w +
+        this.barMargin / 3 +
+        13 +
+        this.barMargin / 3 +
+        this.multAdj.w +
+        this.barMargin,
+      this.mainBarSizeReal / 6
+    );
+
+    stroke(mainL5);
+
+    this.usingGlobalSpeed = this.usingGlobalSpeedAdj.checked();
+
+    // Playhead adjusting logic
 
     let xOver = floor((mouseX - this.offsetX + w * this.scrollX) / w);
     let yOver = floor((mouseY - this.offsetY + h * this.scrollY) / h);
 
+    if (mouseIsPressed && !mouseInUse) {
+      if (mouseIsAt(0, this.mainBarSizeReal, width, this.playheadSize)) {
+        if (!this.usingGlobalSpeed) {
+          globalTime = xOver * (1 / (this.speed * this.speedMultiplier));
+          globalStart = xOver * (1 / (this.speed * this.speedMultiplier));
+        } else {
+          globalTime = xOver * (1 / (globalSpeed * this.speedMultiplier));
+          globalStart = xOver * (1 / (globalSpeed * this.speedMultiplier));
+        }
+      }
+    }
+
+    // Note input
+
+    fill(mainL2);
     if (this.noteDrag == true && mouseIsReleased) {
       for (
         let u = this.noteAnchorX;
@@ -373,15 +553,21 @@ class Midi {
 
     if (
       mouseIsClicked &&
+      !mouseInUse &&
       mouseX <= this.viewWidth &&
       mouseX >= this.offsetX &&
-      mouseY <= this.viewHeight &&
+      mouseY <= this.viewHeight + this.offsetY &&
       mouseY >= this.offsetY
     ) {
       if (mouseButton === LEFT) {
+        // trying to get tone on adding midi note to work
+        //this.currentCommand = map(yOver, 0, 128, 128, 0);
+
         this.noteDeleting = false;
+        mouseInUse = true;
       } else if (mouseButton === RIGHT) {
         this.noteDeleting = true;
+        mouseInUse = true;
       }
       this.noteDrag = true;
     } else if (mouseIsReleased) {
@@ -433,7 +619,7 @@ class Midi {
     this.nodeMidiOutputX = rightX + nodeLineLength;
     this.nodeMidiOutputY = this.panely + this.panelHeight / 2;
 
-    stroke(0);
+    stroke(mainL5);
     // osc output
     line(
       rightX,
@@ -441,14 +627,21 @@ class Midi {
       this.nodeMidiOutputX,
       this.nodeMidiOutputY
     );
+
+    //actually drawing the box
     fill(midiInputOutputC);
     circle(this.nodeMidiOutputX, this.nodeMidiOutputY, nodeSize);
-    fill(150);
+    fill(mainL2);
     rect(this.panelx, this.panely, this.panelWidth, this.panelHeight);
     rect(this.panelx, this.panely, this.panelWidth, this.panelBarSize);
+    fill(mainL5);
+    noStroke();
+    textSize(this.panelBarSize);
+    textAlign(LEFT, TOP);
+    text(this.name, this.panelx + 2, this.panely);
 
-    fill(60);
-    stroke(0);
+    fill(mainL4);
+    stroke(mainL5);
     circle(rightX - 40, windowy + windowh / 2, 40);
     if (doubleClickedAt(rightX - 60, -20 + windowy + windowh / 2, 40, 40)) {
       currentFocus = this;
@@ -489,13 +682,13 @@ class Midi {
               );
               for (let k = 0; k < oscArray[j].midi.length; k++) {
                 if (oscArray[j].midi[k] == this) {
-                  oscArray[j].midi.splice(k,1);
+                  oscArray[j].midi.splice(k, 1);
                 }
               }
             }
           }
           // remove from personal connections array
-          this.connections.splice(i,1);
+          this.connections.splice(i, 1);
           // start creatingConnection
           this.creatingConnection = true;
         }
@@ -551,11 +744,48 @@ class Midi {
         }
       }
     }
+    if (deleteMode) {
+      fill(255, 0, 0, 100);
+      if (
+        mouseIsAt(this.panelx, this.panely, this.panelWidth, this.panelHeight)
+      ) {
+        if (deleteFocus === undefined || deleteFocus == this) {
+          deleteFocus = this;
+        }
+      }
+      if (deleteFocus == this) {
+        if (
+          mouseIsAt(this.panelx, this.panely, this.panelWidth, this.panelHeight)
+        ) {
+          fill(255, 100, 100, 100);
+        } else {
+          deleteFocus = undefined;
+        }
+      }
+
+      noStroke();
+      rect(this.panelx, this.panely, this.panelWidth, this.panelHeight);
+      strokeWeight(3);
+      stroke(255, 100, 100);
+      line(
+        this.panelx,
+        this.panely,
+        this.panelx + this.panelWidth,
+        this.panely + this.panelHeight
+      );
+      line(
+        this.panelx + this.panelWidth,
+        this.panely,
+        this.panelx,
+        this.panely + this.panelHeight
+      );
+      strokeWeight(1);
+    }
     if (mouseIsReleased) {
       this.creatingConnection = false;
     }
   }
-  unRender(){
-    this.usingGlobalSpeedAdj.position(-500,-500)
+  unrender() {
+    this.usingGlobalSpeedAdj.position(-500, -500);
   }
 }
