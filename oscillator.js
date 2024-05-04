@@ -297,6 +297,7 @@ class Oscillator {
     let x1 = leftmargin + 2;
     let x2 = leftmargin + 2 + buttonwidth + 10;
     let x3 = leftmargin + 2 + buttonwidth * 2 + 10 * 2;
+    let x4 = leftmargin + 2 + buttonwidth * 3 + 10 * 3;
 
     if (clickedAt(x1, buttony, buttonwidth, buttonheight)) {
       this.waveType = "sine";
@@ -306,6 +307,9 @@ class Oscillator {
     }
     if (clickedAt(x3, buttony, buttonwidth, buttonheight)) {
       this.waveType = "square";
+    }
+    if (clickedAt(x4, buttony, buttonwidth, buttonheight)) {
+      this.waveType = "triangle";
     }
 
     // frequency drawings
@@ -365,7 +369,8 @@ class Oscillator {
       x2 + buttonwidth,
       buttony + buttonheight / 2
     );
-
+    
+    //square
     if (this.waveType == "square") {
       // setting colors if setting is selected
       fill(mainL4);
@@ -374,7 +379,6 @@ class Oscillator {
       fill(mainL2);
       stroke(mainL5);
     }
-    //square
     // draw box
     rect(x3, buttony, buttonwidth, buttonheight);
     // draw line
@@ -395,6 +399,37 @@ class Oscillator {
       buttony + wavemargin,
       x3 + buttonwidth,
       buttony + wavemargin
+    );
+    
+    // triangle
+    if (this.waveType == "triangle") {
+      // setting colors if setting is selected
+      fill(mainL4);
+      stroke(mainL1);
+    } else {
+      fill(mainL2);
+      stroke(mainL5);
+    }
+    // draw box
+    rect(x4, buttony, buttonwidth, buttonheight);
+    // draw line
+    line(
+      x4,
+      buttony + buttonheight/2,
+      x4 + buttonwidth / 4,
+      buttony + wavemargin
+    );
+    line(
+      x4 + buttonwidth / 4,
+      buttony + wavemargin,
+      x4+ buttonwidth / 1.33333333333333,
+      buttony + buttonheight - wavemargin
+    );
+    line(
+      x4+ buttonwidth / 1.33333333333333,
+      buttony + buttonheight - wavemargin,
+      x4 + buttonwidth,
+      buttony + buttonheight/2
     );
 
     // back to values

@@ -34,22 +34,22 @@ class Midi {
     // GUI variables
 
     this.mWidth = 10;
-    this.mHeight = 10;
+    this.mHeight = 20;
 
-    this.scrollY = 32;
+    this.scrollY = 52;
     this.maxScrollY = 0;
     this.scrollX = 0;
     this.maxScrollX = 0;
     this.mainBarSize = 100;
     this.playheadSize = 20;
     this.mainBarSizeReal = this.mainBarSize - this.playheadSize;
-    this.offsetX = 0;
+    this.offsetX = 40;
     this.offsetY = this.mainBarSize;
     this.scrollbarSize = 15;
     this.scrollDragX = false;
     this.scrollDragY = false;
     this.nubDrag = false;
-    this.viewWidth = width - this.scrollbarSize;
+    this.viewWidth = width - this.scrollbarSize - this.offsetX;
     this.viewHeight = height - this.scrollbarSize - this.offsetY;
     this.noteAnchorX = 0;
     this.noteAnchorY = 0;
@@ -193,7 +193,7 @@ class Midi {
     // Playhead
 
     noStroke();
-    fill(0, 0, 0, 30);
+    fill(color(red(mainL5), green(mainL5), blue(mainL5), 30));
     rect(
       w * this.playheadIndex - scrollOffsetX + this.offsetX,
       this.offsetY,
@@ -203,6 +203,35 @@ class Midi {
 
     stroke(mainL2);
     fill(mainL2);
+
+    // Horizontal lines
+
+    for (let j = 0; j < 128; j++) {
+      let posY = h * j - scrollOffsetY + this.offsetY;
+      if (posY < height + this.offsetY && posY > 0 + this.offsetY - h) {
+        let midivalue = map(j, 0, 128, 128, 0);
+        stroke(color(red(mainL2), green(mainL2), blue(mainL2), 100));
+        if (midivalue % 12 == 11 || midivalue % 12 == 4) {
+          line(this.offsetX, posY, width + this.offsetX, posY);
+        }
+        noStroke();
+        fill(mainL5);
+        textAlign(LEFT, TOP);
+        textSize(10);
+
+        if (
+          midivalue % 12 == 1 ||
+          midivalue % 12 == 3 ||
+          midivalue % 12 == 6 ||
+          midivalue % 12 == 8 ||
+          midivalue % 12 == 10
+        ) {
+          fill(color(red(mainL2), green(mainL2), blue(mainL2), 100));
+          rect(this.offsetX, posY, this.viewWidth, h);
+          text(map(j, 0, 128, 128, 0), this.offsetX, posY - 2);
+        }
+      }
+    }
 
     // Vertical Lines and Notes
 
@@ -247,33 +276,55 @@ class Midi {
           ) {
             fill(mainL2);
             if (midiArray[k].data == this.data) {
-              stroke(mainL2);
+              stroke(color(red(mainL2), green(mainL2), blue(mainL2), 100));
               line(posX, this.offsetY, posX, this.viewHeight + this.offsetY);
               fill(mainL5);
-              //text(j, posX, h + this.offsetY);
+              //text(j, posX, this.offsetY);
             }
             if (
               notePosY <= this.viewHeight + this.offsetY &&
               notePosY >= 0 + this.offsetY
             ) {
               stroke(0, 0);
-              rect(posX, notePosY, wScaled * noteLength, h); //wScaled, h);
+              rect(posX, notePosY, wScaled * noteLength, h);
             }
           }
         }
       }
     }
 
-    // Horizontal lines
+    // PIANO VISUAL
 
+    fill(pianoC1);
+
+    rect(0, this.mainBarSize, this.offsetX, height);
     for (let j = 0; j < 128; j++) {
       let posY = h * j - scrollOffsetY + this.offsetY;
-      if (posY < height + this.offsetY && posY > 0 + this.offsetY) {
-        stroke(100);
-        line(this.offsetX, posY, width + this.offsetX, posY);
-        stroke(0, 0, 0, 0);
-        fill(mainL5);
-        //text(map(j, 0, 128, 128, 0), this.offsetX, posY + h - 2);
+      if (posY < height + this.offsetY && posY > 0 + this.offsetY - h) {
+        let midivalue = map(j, 0, 128, 128, 0);
+
+        if (midivalue % 12 == 1) {
+          fill(pianoC2);
+
+          rect(0, posY + h / 2, this.offsetX, h + h / 2);
+        }
+        if (midivalue % 12 == 0) {
+          fill(mainL3);
+          textSize(min(h - 3, 20));
+          textAlign(RIGHT, CENTER);
+          text("C" + midivalue / 12, this.offsetX - 3, posY + h / 2);
+        }
+
+        if (
+          midivalue % 12 == 1 ||
+          midivalue % 12 == 3 ||
+          midivalue % 12 == 6 ||
+          midivalue % 12 == 8 ||
+          midivalue % 12 == 10
+        ) {
+          fill(mainL3);
+          rect(0, posY, this.offsetX / 2, h);
+        }
       }
     }
 
@@ -424,7 +475,7 @@ class Midi {
         fill(mainL5);
       }
       circle(
-        w * (i - this.scrollX) + w / 2,
+        this.offsetX + w * (i - this.scrollX) + w / 2,
         this.mainBarSize - this.playheadSize / 2,
         8
       );
@@ -447,6 +498,7 @@ class Midi {
 
     // Adjustables
 
+    textAlign(LEFT, TOP);
     noStroke();
     fill(mainL5);
     textSize(this.ticksAdj.h);
@@ -509,6 +561,7 @@ class Midi {
 
     let xOver = floor((mouseX - this.offsetX + w * this.scrollX) / w);
     let yOver = floor((mouseY - this.offsetY + h * this.scrollY) / h);
+    xOver = max(xOver, 0);
 
     if (mouseIsPressed && !mouseInUse) {
       if (mouseIsAt(0, this.mainBarSizeReal, width, this.playheadSize)) {
